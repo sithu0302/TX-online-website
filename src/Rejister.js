@@ -1,92 +1,101 @@
-import React, { useState } from 'react';
-
-// CSS file නම, import statement එකට ගැලපෙන බවට වග බලා ගන්න.
-import './Register.css'; 
-import Camera from './Camera'; // Camera component එක තවම තිබෙන බවට උපකල්පනය කරමු.
+import React, { useState, useRef, useContext } from 'react';
+import { Link } from 'react-router-dom';
+import { AuthContext } from './AuthContext';
+import './Register.css';
 
 const Register = () => {
-    const [formData, setFormData] = useState({
-        // accountType එක array එකක් ලෙස වෙනස් කරමු
-        accountType: [], 
-        fullName: '',
-        age: '',
-        qualifications: '', // දැන් dropdown එකක්
-        email: '', // අලුත් email field එක
-        username: '',
-        password: '',
-        confirmPassword: '',
-        phoneNumber: '',
-        companyName: '',
-        cv: null,
-        jobPath: '', // අලුත් field එක
-        hasExperience: 'no', // Default value එක 'no'
-        yearsOfExperience: '', // අලුත් field එක
-    });
-
+    const { login } = useContext(AuthContext);
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [email, setEmail] = useState('');
+    const [accountTypes, setAccountTypes] = useState([]);
+    const [fullName, setFullName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [address, setAddress] = useState('');
+    const [qualifications, setQualifications] = useState('');
+    const [cv, setCv] = useState(null);
+    const [companyName, setCompanyName] = useState('');
+    const [bizRegNo, setBizRegNo] = useState('');
     const [error, setError] = useState('');
-    const [message, setMessage] = useState('');
-    const [capturedPhoto, setCapturedPhoto] = useState(null);
+    const [selfie, setSelfie] = useState(null);
+    const videoRef = useRef(null);
+    const photoRef = useRef(null);
 
-    const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-
-        if (type === 'checkbox') {
-            // Checkbox එකක් select කරන විට, ඒ value එක array එකට එකතු කරමු
-            setFormData(prevData => ({
-                ...prevData,
-                accountType: checked
-                    ? [...prevData.accountType, value] // Check කළ විට array එකට එකතු කරන්න
-                    : prevData.accountType.filter(type => type !== value) // Uncheck කළ විට array එකෙන් ඉවත් කරන්න
-            }));
-        } else if (type === 'file') {
-            setFormData(prevData => ({
-                ...prevData,
-                [name]: e.target.files[0]
-            }));
-        } else {
-            setFormData(prevData => ({
-                ...prevData,
-                [name]: value
-            }));
+    const startCamera = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+        } catch (err) {
+            console.error("Error accessing the camera:", err);
+            setError("Could not access camera. Please check your permissions.");
         }
     };
 
-    const handleRegister = async (e) => {
+    const takePhoto = () => {
+        const width = 300;
+        const height = width / (16 / 9);
+
+        let video = videoRef.current;
+        let photo = photoRef.current;
+
+        photo.width = width;
+        photo.height = height;
+
+        let ctx = photo.getContext('2d');
+        ctx.drawImage(video, 0, 0, width, height);
+
+        const data = photo.toDataURL('image/png');
+        setSelfie(data);
+    };
+
+    const handleCheckboxChange = (e) => {
+        const { value, checked } = e.target;
+        if (checked) {
+            setAccountTypes([...accountTypes, value]);
+        } else {
+            setAccountTypes(accountTypes.filter(type => type !== value));
+        }
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Password matching validation
-        if (formData.password !== formData.confirmPassword) {
-            setError('Passwords do not match');
+        // Selfie verification is only required for 'freelancer'
+        if (accountTypes.includes('freelancer') && !selfie) {
+            setError("Please take a selfie for verification.");
             return;
         }
 
-        // Email validation: '@' අක්ෂරය තිබේදැයි පරීක්ෂා කරන්න
-        if (!formData.email.includes('@')) {
-            setError('Please enter a valid email address with an "@" symbol.');
-            return;
-        }
+        const formData = {
+            username,
+            password,
+            email,
+            accountTypes,
+            selfie: accountTypes.includes('freelancer') ? selfie : null,
+        };
 
-        setError(''); 
-
-        const data = new FormData();
-        // Form data object එකට අලුත් fields සියල්ලම append කරමු
-        for (const key in formData) {
-            // Arrays backend එකට යැවීමට පෙර stringify කළ යුතුයි
-            if (Array.isArray(formData[key])) {
-                data.append(key, JSON.stringify(formData[key]));
-            } else {
-                data.append(key, formData[key]);
+        // Append additional fields based on account type
+        if (accountTypes.includes('freelancer') || accountTypes.includes('job_seeker')) {
+            formData.fullName = fullName;
+            formData.phone = phone;
+            formData.address = address;
+            formData.qualifications = qualifications;
+            if (cv) {
+                formData.cv = cv.name; // In a real app, you would upload the file
             }
         }
-        
-        if (capturedPhoto) {
-            data.append('photo', capturedPhoto);
+        if (accountTypes.includes('company')) {
+            formData.companyName = companyName;
+            formData.bizRegNo = bizRegNo;
         }
 
         try {
             const response = await fetch('http://localhost:5000/api/register', {
                 method: 'POST',
-                body: data, 
+                body: JSON.stringify(formData),
+                headers: { 'Content-Type': 'application/json' },
             });
 
             if (!response.ok) {
@@ -94,8 +103,21 @@ const Register = () => {
                 throw new Error(errorData.message || 'Registration failed');
             }
 
-            const result = await response.json();
-            setMessage(result.message); 
+            const data = await response.json();
+            const { token, role } = data;
+
+            localStorage.setItem('token', token);
+            localStorage.setItem('role', role);
+
+            login();
+
+            if (role === 'admin') {
+                window.location.href = '/admin/dashboard';
+            } else if (role === 'company') {
+                window.location.href = '/company/dashboard';
+            } else {
+                window.location.href = '/user/dashboard';
+            }
 
         } catch (err) {
             console.error('Registration error:', err);
@@ -103,152 +125,185 @@ const Register = () => {
         }
     };
 
-    // User ගේ account type එක select කර තිබේදැයි පරීක්ෂා කිරීමට helper function එකක්
-    const isUserTypeSelected = formData.accountType.includes('user') || formData.accountType.includes('freelancer');
-    const isCompanyTypeSelected = formData.accountType.includes('company');
-
-    return (
-        <div className="register-container">
-            <form onSubmit={handleRegister} className="register-form">
-                <h2>Create an Account</h2>
-                {error && <p className="error-message">{error}</p>}
-                {message && <p className="success-message">{message}</p>}
-
-                {/* Checkboxes භාවිතයෙන් Account Type තේරීම */}
-                <div className="form-group account-type">
-                    <label>Account Type:</label>
-                    <div>
-                        <input
-                            type="checkbox"
-                            name="accountType"
-                            value="user"
-                            checked={formData.accountType.includes('user')}
-                            onChange={handleChange}
-                        /> <label>Job Seeker</label>
-                        <input
-                            type="checkbox"
-                            name="accountType"
-                            value="freelancer"
-                            checked={formData.accountType.includes('freelancer')}
-                            onChange={handleChange}
-                        /> <label>Freelancer</label>
-                        <input
-                            type="checkbox"
-                            name="accountType"
-                            value="company"
-                            checked={formData.accountType.includes('company')}
-                            onChange={handleChange}
-                        /> <label>Company</label>
-                    </div>
-                </div>
-
-                {/* USER fields - conditional rendering */}
-                {isUserTypeSelected && (
+    const renderAccountTypeFields = () => {
+        return (
+            <>
+                {(accountTypes.includes('freelancer') || accountTypes.includes('job_seeker')) && (
                     <>
                         <div className="form-group">
-                            <label>Full Name</label>
-                            <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} required />
+                            <label htmlFor="fullName">Full Name</label>
+                            <input
+                                type="text"
+                                id="fullName"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                required
+                            />
                         </div>
                         <div className="form-group">
-                            <label>Age</label>
-                            <input type="number" name="age" value={formData.age} onChange={handleChange} required />
+                            <label htmlFor="phone">Phone Number</label>
+                            <input
+                                type="tel"
+                                id="phone"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                required
+                            />
                         </div>
                         <div className="form-group">
-                            <label>Job Path</label>
-                            <input type="text" name="jobPath" value={formData.jobPath} onChange={handleChange} placeholder="e.g., IT, Management" required />
+                            <label htmlFor="address">Address</label>
+                            <textarea
+                                id="address"
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                                rows="2"
+                            />
                         </div>
                         <div className="form-group">
-                            <label>Highest Qualifications</label>
-                            <select name="qualifications" value={formData.qualifications} onChange={handleChange} required>
-                                <option value="">Select Qualification</option>
-                                <option value="O/L">O/L</option>
-                                <option value="A/L">A/L</option>
-                                <option value="Diploma">Diploma</option>
-                                <option value="Degree">Degree</option>
-                                <option value="Master">Master</option>
-                            </select>
+                            <label htmlFor="qualifications">Qualifications</label>
+                            <textarea
+                                id="qualifications"
+                                value={qualifications}
+                                onChange={(e) => setQualifications(e.target.value)}
+                                rows="4"
+                                placeholder="Enter your qualifications, skills, etc."
+                            />
                         </div>
                         <div className="form-group">
-                            <label>Experience</label>
-                            <div className="flex items-center space-x-4">
-                                <label>
-                                    <input
-                                        type="radio"
-                                        name="hasExperience"
-                                        value="yes"
-                                        checked={formData.hasExperience === 'yes'}
-                                        onChange={handleChange}
-                                    /> Yes
-                                </label>
-                                <label>
-                                    <input
-                                        type="radio"
-                                        name="hasExperience"
-                                        value="no"
-                                        checked={formData.hasExperience === 'no'}
-                                        onChange={handleChange}
-                                    /> No
-                                </label>
-                            </div>
-                        </div>
-                        {formData.hasExperience === 'yes' && (
-                            <div className="form-group">
-                                <label>Years of Experience</label>
-                                <input
-                                    type="number"
-                                    name="yearsOfExperience"
-                                    value={formData.yearsOfExperience}
-                                    onChange={handleChange}
-                                    min="0"
-                                    required
-                                />
-                            </div>
-                        )}
-                        <div className="form-group">
-                            <label>Phone Number</label>
-                            <input type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} required />
-                        </div>
-                        <div className="form-group">
-                            <label>Upload CV</label>
-                            <input type="file" name="cv" onChange={handleChange} accept=".pdf,.doc,.docx" required />
-                        </div>
-                        <hr />
-                        {/* Webcam capture section */}
-                        <div className="form-group">
-                            <h4>Identity Verification</h4>
-                            <Camera onCapture={setCapturedPhoto} />
+                            <label htmlFor="cv">Upload CV/Resume</label>
+                            <input
+                                type="file"
+                                id="cv"
+                                onChange={(e) => setCv(e.target.files[0])}
+                                accept=".pdf,.doc,.docx"
+                            />
                         </div>
                     </>
                 )}
+                {accountTypes.includes('company') && (
+                    <>
+                        <div className="form-group">
+                            <label htmlFor="companyName">Company Name</label>
+                            <input
+                                type="text"
+                                id="companyName"
+                                value={companyName}
+                                onChange={(e) => setCompanyName(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="bizRegNo">Business Registration Number</label>
+                            <input
+                                type="text"
+                                id="bizRegNo"
+                                value={bizRegNo}
+                                onChange={(e) => setBizRegNo(e.target.value)}
+                                required
+                            />
+                        </div>
+                    </>
+                )}
+            </>
+        );
+    };
 
-                {/* COMPANY fields - conditional rendering */}
-                {isCompanyTypeSelected && (
-                    <div className="form-group">
-                        <label>Company Name</label>
-                        <input type="text" name="companyName" value={formData.companyName} onChange={handleChange} required />
+    return (
+        <div className="register-container">
+            <form onSubmit={handleSubmit} className="register-form">
+                <h2>Register</h2>
+                {error && <p className="error-message">{error}</p>}
+                
+                <div className="form-group">
+                    <label htmlFor="email">Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
+                </div>
+                
+                <div className="form-group">
+                    <label htmlFor="username">Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        required
+                    />
+                </div>
+                
+                <div className="form-group">
+                    <label htmlFor="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                </div>
+                
+                <div className="form-group">
+                    <label>Account Type</label>
+                    <div className="checkbox-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                name="accountType"
+                                value="job_seeker"
+                                onChange={handleCheckboxChange}
+                            />
+                            Job Seeker
+                        </label>
+                        <label>
+                            <input
+                                type="checkbox"
+                                name="accountType"
+                                value="freelancer"
+                                onChange={handleCheckboxChange}
+                            />
+                            Freelancer
+                        </label>
+                        <label>
+                            <input
+                                type="checkbox"
+                                name="accountType"
+                                value="company"
+                                onChange={handleCheckboxChange}
+                            />
+                            Company
+                        </label>
+                    </div>
+                </div>
+
+                {renderAccountTypeFields()}
+
+                {accountTypes.includes('freelancer') && (
+                    <div className="selfie-verification-section">
+                        <h3>Selfie Verification</h3>
+                        <div className="camera-container">
+                            <video ref={videoRef} onCanPlay={() => videoRef.current.play()} className="camera-preview"></video>
+                            <canvas ref={photoRef} style={{ display: 'none' }}></canvas>
+                        </div>
+                        
+                        <button type="button" onClick={startCamera}>Start Camera</button>
+                        <button type="button" onClick={takePhoto} disabled={!videoRef.current}>Take Photo</button>
+                        
+                        {selfie && (
+                            <div className="selfie-preview">
+                                <h4>Selfie Preview</h4>
+                                <img src={selfie} alt="Selfie" />
+                            </div>
+                        )}
                     </div>
                 )}
-                
-                {/* Common fields for all user types */}
-                <div className="form-group">
-                    <label>Username</label>
-                    <input type="text" name="username" value={formData.username} onChange={handleChange} required />
-                </div>
-                {/* New Email field added here */}
-                <div className="form-group">
-                    <label>Email</label>
-                    <input type="email" name="email" value={formData.email} onChange={handleChange} required />
-                </div>
-                <div className="form-group">
-                    <label>Password</label>
-                    <input type="password" name="password" value={formData.password} onChange={handleChange} required />
-                </div>
-                <div className="form-group">
-                    <label>Confirm Password</label>
-                    <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
-                </div>
 
                 <button type="submit" className="register-button">Register</button>
+                <p>Already have an account? <Link to="/login">Login here</Link></p>
             </form>
         </div>
     );

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
+import { AuthContext } from './AuthContext'; // Import the AuthContext
 import './Login.css';
 
 const Login = () => {
+    const { login } = useContext(AuthContext); // Get the login function from context
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -27,6 +29,9 @@ const Login = () => {
 
             localStorage.setItem('token', token);
             localStorage.setItem('role', role);
+
+            // Call the login function to update the auth state
+            login();
 
             // Redirect based on the user's role
             if (role === 'admin') {
@@ -71,14 +76,13 @@ const Login = () => {
                     />
                 </div>
                 
+                <div className="admin-login-link">
+                    <p>Admin Login? <Link to="/admin/login">Click here</Link></p>
+                </div>
+                
                 <button type="submit" className="login-button">Login</button>
                 <p>Don't have an account? <Link to="/register">Register here</Link></p>
             </form>
-            
-            {/* Admin Login Section - You might want to make this a separate page */}
-            <div className="admin-login-link">
-                <p>Admin Login? <Link to="/admin/login">Click here</Link></p>
-            </div>
         </div>
     );
 };

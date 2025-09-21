@@ -14,7 +14,7 @@ body {
 
 /* Form card styling */
 .register-form {
-    background-color: #ffffff; /* White background for the form */
+    background-color: #ffffff; /* White background for the form*/
     padding: 40px;
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -60,7 +60,7 @@ body {
 
 .form-group input:focus,
 .form-group select:focus {
-    border-color: #007bff; /* Dark blue focus effect */
+    border-color: #0e2033; /* Dark blue focus effect */
     outline: none;
 }
 
@@ -76,7 +76,7 @@ body {
 .register-button {
     width: 100%;
     padding: 15px;
-    background-color: #007bff; /* Dark blue button color */
+    background-color: #0e2033; /* Dark blue button color */
     color: #ffffff;
     border: none;
     border-radius: 5px;

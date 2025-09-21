@@ -1,0 +1,120 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  font-family: Arial, sans-serif;
+  height: 100%;
+}
+
+/* Header */
+header {
+  display: flex;
+  justify-content: space-between; /* TX JOB HUB left, nav right */
+  align-items: center;
+  background-color: #333;
+  color: #fff;
+  padding: 15px 20px;
+  position: sticky; /* scroll karaddi header fixed wenawa */
+  top: 0;
+  z-index: 1000;
+}
+
+/* Logo text */
+header .logo a {
+  color: #fff;
+  font-size: 20px;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+/* Nav links */
+header nav ul {
+  display: flex;
+  list-style: none;
+  gap: 20px;
+}
+
+header nav ul li a {
+  color: white;
+  text-decoration: none;
+}
+
+header nav ul li a:hover {
+  color: #60a5fa;
+}
+
+/* Profile dropdown */
+.profile-dropdown {
+  position: relative;
+}
+
+.profile-pic {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 50px;
+  background: white;
+  color: black;
+  min-width: 120px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  display: none;
+}
+
+.profile-dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+.dropdown-menu li {
+  padding: 10px;
+}
+
+.dropdown-menu li a,
+.dropdown-menu li button {
+  text-decoration: none;
+  color: black;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdown-menu li:hover {
+  background-color: #f0f0f0;
+}
+
+/* Main content */
+main {
+  padding: 20px;
+  min-height: 80vh; /* page wadi content scroll wenna */
+  background: #f9f9f9;
+}
+
+/* Footer */
+footer {
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  padding: 20px;
+}
+
+footer a {
+  color: #fff;
+  margin: 0 10px;
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
