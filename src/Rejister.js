@@ -1,21 +1,26 @@
 import React, { useState } from 'react';
 
-// Make sure the CSS file name matches the import statement exactly, including capitalization.
+// CSS file නම, import statement එකට ගැලපෙන බවට වග බලා ගන්න.
 import './Register.css'; 
-import Camera from './Camera'; // We'll assume you have the Camera component ready to import.
+import Camera from './Camera'; // Camera component එක තවම තිබෙන බවට උපකල්පනය කරමු.
 
 const Register = () => {
     const [formData, setFormData] = useState({
-        accountType: 'user', 
+        // accountType එක array එකක් ලෙස වෙනස් කරමු
+        accountType: [], 
         fullName: '',
         age: '',
-        qualifications: '',
+        qualifications: '', // දැන් dropdown එකක්
+        email: '', // අලුත් email field එක
         username: '',
         password: '',
         confirmPassword: '',
         phoneNumber: '',
         companyName: '',
-        cv: null, 
+        cv: null,
+        jobPath: '', // අලුත් field එක
+        hasExperience: 'no', // Default value එක 'no'
+        yearsOfExperience: '', // අලුත් field එක
     });
 
     const [error, setError] = useState('');
@@ -23,28 +28,57 @@ const Register = () => {
     const [capturedPhoto, setCapturedPhoto] = useState(null);
 
     const handleChange = (e) => {
-        const { name, value, type, files } = e.target;
-        setFormData(prevData => ({
-            ...prevData,
-            [name]: type === 'file' ? files[0] : value
-        }));
+        const { name, value, type, checked } = e.target;
+
+        if (type === 'checkbox') {
+            // Checkbox එකක් select කරන විට, ඒ value එක array එකට එකතු කරමු
+            setFormData(prevData => ({
+                ...prevData,
+                accountType: checked
+                    ? [...prevData.accountType, value] // Check කළ විට array එකට එකතු කරන්න
+                    : prevData.accountType.filter(type => type !== value) // Uncheck කළ විට array එකෙන් ඉවත් කරන්න
+            }));
+        } else if (type === 'file') {
+            setFormData(prevData => ({
+                ...prevData,
+                [name]: e.target.files[0]
+            }));
+        } else {
+            setFormData(prevData => ({
+                ...prevData,
+                [name]: value
+            }));
+        }
     };
 
     const handleRegister = async (e) => {
         e.preventDefault();
 
+        // Password matching validation
         if (formData.password !== formData.confirmPassword) {
             setError('Passwords do not match');
+            return;
+        }
+
+        // Email validation: '@' අක්ෂරය තිබේදැයි පරීක්ෂා කරන්න
+        if (!formData.email.includes('@')) {
+            setError('Please enter a valid email address with an "@" symbol.');
             return;
         }
 
         setError(''); 
 
         const data = new FormData();
+        // Form data object එකට අලුත් fields සියල්ලම append කරමු
         for (const key in formData) {
-            data.append(key, formData[key]);
+            // Arrays backend එකට යැවීමට පෙර stringify කළ යුතුයි
+            if (Array.isArray(formData[key])) {
+                data.append(key, JSON.stringify(formData[key]));
+            } else {
+                data.append(key, formData[key]);
+            }
         }
-        // Also append the captured photo
+        
         if (capturedPhoto) {
             data.append('photo', capturedPhoto);
         }
@@ -69,6 +103,10 @@ const Register = () => {
         }
     };
 
+    // User ගේ account type එක select කර තිබේදැයි පරීක්ෂා කිරීමට helper function එකක්
+    const isUserTypeSelected = formData.accountType.includes('user') || formData.accountType.includes('freelancer');
+    const isCompanyTypeSelected = formData.accountType.includes('company');
+
     return (
         <div className="register-container">
             <form onSubmit={handleRegister} className="register-form">
@@ -76,27 +114,36 @@ const Register = () => {
                 {error && <p className="error-message">{error}</p>}
                 {message && <p className="success-message">{message}</p>}
 
-                {/* Account Type selection using radio buttons */}
+                {/* Checkboxes භාවිතයෙන් Account Type තේරීම */}
                 <div className="form-group account-type">
                     <label>Account Type:</label>
-                    <input
-                        type="radio"
-                        name="accountType"
-                        value="user"
-                        checked={formData.accountType === 'user'}
-                        onChange={handleChange}
-                    /> <label>User</label>
-                    <input
-                        type="radio"
-                        name="accountType"
-                        value="company"
-                        checked={formData.accountType === 'company'}
-                        onChange={handleChange}
-                    /> <label>Company</label>
+                    <div>
+                        <input
+                            type="checkbox"
+                            name="accountType"
+                            value="user"
+                            checked={formData.accountType.includes('user')}
+                            onChange={handleChange}
+                        /> <label>Job Seeker</label>
+                        <input
+                            type="checkbox"
+                            name="accountType"
+                            value="freelancer"
+                            checked={formData.accountType.includes('freelancer')}
+                            onChange={handleChange}
+                        /> <label>Freelancer</label>
+                        <input
+                            type="checkbox"
+                            name="accountType"
+                            value="company"
+                            checked={formData.accountType.includes('company')}
+                            onChange={handleChange}
+                        /> <label>Company</label>
+                    </div>
                 </div>
 
                 {/* USER fields - conditional rendering */}
-                {formData.accountType === 'user' && (
+                {isUserTypeSelected && (
                     <>
                         <div className="form-group">
                             <label>Full Name</label>
@@ -107,9 +154,56 @@ const Register = () => {
                             <input type="number" name="age" value={formData.age} onChange={handleChange} required />
                         </div>
                         <div className="form-group">
-                            <label>Highest Qualifications</label>
-                            <input type="text" name="qualifications" value={formData.qualifications} onChange={handleChange} required />
+                            <label>Job Path</label>
+                            <input type="text" name="jobPath" value={formData.jobPath} onChange={handleChange} placeholder="e.g., IT, Management" required />
                         </div>
+                        <div className="form-group">
+                            <label>Highest Qualifications</label>
+                            <select name="qualifications" value={formData.qualifications} onChange={handleChange} required>
+                                <option value="">Select Qualification</option>
+                                <option value="O/L">O/L</option>
+                                <option value="A/L">A/L</option>
+                                <option value="Diploma">Diploma</option>
+                                <option value="Degree">Degree</option>
+                                <option value="Master">Master</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label>Experience</label>
+                            <div className="flex items-center space-x-4">
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="hasExperience"
+                                        value="yes"
+                                        checked={formData.hasExperience === 'yes'}
+                                        onChange={handleChange}
+                                    /> Yes
+                                </label>
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="hasExperience"
+                                        value="no"
+                                        checked={formData.hasExperience === 'no'}
+                                        onChange={handleChange}
+                                    /> No
+                                </label>
+                            </div>
+                        </div>
+                        {formData.hasExperience === 'yes' && (
+                            <div className="form-group">
+                                <label>Years of Experience</label>
+                                <input
+                                    type="number"
+                                    name="yearsOfExperience"
+                                    value={formData.yearsOfExperience}
+                                    onChange={handleChange}
+                                    min="0"
+                                    required
+                                />
+                            </div>
+                        )}
                         <div className="form-group">
                             <label>Phone Number</label>
                             <input type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} required />
@@ -128,17 +222,22 @@ const Register = () => {
                 )}
 
                 {/* COMPANY fields - conditional rendering */}
-                {formData.accountType === 'company' && (
+                {isCompanyTypeSelected && (
                     <div className="form-group">
                         <label>Company Name</label>
                         <input type="text" name="companyName" value={formData.companyName} onChange={handleChange} required />
                     </div>
                 )}
                 
-                {/* Common fields for both user and company */}
+                {/* Common fields for all user types */}
                 <div className="form-group">
                     <label>Username</label>
                     <input type="text" name="username" value={formData.username} onChange={handleChange} required />
+                </div>
+                {/* New Email field added here */}
+                <div className="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} required />
                 </div>
                 <div className="form-group">
                     <label>Password</label>

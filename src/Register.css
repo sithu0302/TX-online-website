@@ -1,0 +1,112 @@
+/* General body and container styles */
+body {
+    background-color: #f0f2f5; /* Light gray background to make the form stand out */
+    font-family: 'Arial', sans-serif;
+}
+
+.register-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* Form card styling */
+.register-form {
+    background-color: #ffffff; /* White background for the form */
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 500px;
+    box-sizing: border-box;
+}
+
+.register-form h2 {
+    color: #000000; /* Black for headings */
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+/* Form group and labels */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #444444; /* Dark gray for labels */
+}
+
+/* Input fields and select box */
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="password"],
+.form-group input[type="email"],
+.form-group input[type="tel"],
+.form-group select,
+.form-group input[type="file"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cccccc; /* Light gray border */
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #007bff; /* Dark blue focus effect */
+    outline: none;
+}
+
+/* Checkbox and radio button styling */
+.form-group.account-type label,
+.form-group label input[type="radio"] {
+    display: inline-block;
+    margin-right: 15px;
+    font-weight: normal;
+}
+
+/* Button styling */
+.register-button {
+    width: 100%;
+    padding: 15px;
+    background-color: #007bff; /* Dark blue button color */
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.register-button:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+    transform: translateY(-2px);
+}
+
+/* Error and success messages */
+.error-message {
+    color: #e74c3c; /* Red color for errors */
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.success-message {
+    color: #27ae60; /* Green color for success messages */
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 600px) {
+    .register-form {
+        padding: 25px;
+    }
+}
